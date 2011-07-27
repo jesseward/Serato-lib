@@ -1,0 +1,19 @@
+=== What ===
+
+The goal of this repo is to document the basic file formats of the Rane Serato
+Scratch Live databases.
+
+The libraries generated from this work should eventually allow for read/write
+actions against the SSL db/crate files
+
+== sslcrate.py ==
+
+Working script that reads in and performs very basic parsing of the Serato
+Scratch crate files.
+
+Meant for debugging purposes only.
+
+== TODO ==
+
+- generate read / write classes for crate/db files
+- s/mmap/construct/ libraries for cleaner parsing  of the binary structures
