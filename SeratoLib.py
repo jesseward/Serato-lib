@@ -57,9 +57,9 @@ class SSL(object):
 class Crate(SSL):
 
     TAG_DEFAULTS = {
-        'ovct' : 0x0000001c, # ???
+        'ovct' : '\x00\x00\x00\x1c', # ???
         'brev' : 0x00, # ???
-        'tvcw' : 0x000000020030, # column width
+        'tvcw' : '\x00\x00\x00\x02\x000', # column width
         }
 
     def __init__(self, cratefile):
@@ -169,10 +169,9 @@ class Crate(SSL):
             raise SSLCrateError("File already exists in crate.")
 
         otrk = struct.pack(">L", len(file_name))
-        ptrk = struct.pack(">L%ds" % len(file_name), len(file_name), file_name)
 
         self.contents['tracks'].append({'otrk': otrk})
-        self.contents['tracks'][-1].update({'ptrk': ptrk})
+        self.contents['tracks'][-1].update({'ptrk': file_name})
        
     def _track_exist(self, file_name):
         """ Returns position if track is already present in the given crate """ 
@@ -201,36 +200,42 @@ class Crate(SSL):
             raise SSLCrateError("Unable to write crate file.")
 
         # vrsn tag
-        f.write(struct.pack("4s", "vrsn"))
-        f.write(struct.pack("%ds" % len(self.version), self.version))
+        f.write(struct.pack("4s%ds" % len(self.version), \
+                            "vrsn", \
+                            self.version))
        
         # sorted colum : osrt, tvcn, brev 
-        f.write(struct.pack("4s", "osrt"))
-        f.write(struct.pack(">L%ds" % len(self.contents['sort']['tvcn']), \
-            len(self.contents['sort']['tvcn']), self.contents['sort']['tvcn']))
-        f.write(struct.pack("4s", "brev"))
-        f.write(struct.pack("5s", self.contents['sort']['brev']))
+        f.write(struct.pack(">4s4s4sL%ds4s5s" % len(self.contents['sort']['tvcn']),  \
+                            "osrt", \
+                            self.contents['sort']['osrt'], \
+                            "tvcn", \
+                            len(self.contents['sort']['tvcn']), \
+                            self.contents['sort']['tvcn'], \
+                            "brev", \
+                            self.contents['sort']['brev'])) 
 
         # available columns : ovct, tvcn, tvcw
         for i, x in enumerate(self.contents['columns']):
-            f.write(struct.pack("4s", "ovct"))
-            f.write(struct.pack("4s", self.contents['columns'][i]['ovct']))
-            f.write(struct.pack("4s", "tvcn"))
-            f.write(struct.pack(">L%ds" % len(self.contents['columns'][i]['tvcn']), \
-                len(self.contents['columns'][i]['tvcn']), \
-                self.contents['columns'][i]['tvcn']))
-            f.write(struct.pack("4s", "tvcw"))
-            f.write(struct.pack("%ds" % len(self.contents['columns'][i]['tvcw']), \
+            f.write(struct.pack(">4s4s4sL%ds4s%ds" % \
+                    (len(self.contents['columns'][i]['tvcn']),
+                     len(self.contents['columns'][i]['tvcw'])), \
+                    "ovct", \
+                    self.contents['columns'][i]['ovct'], \
+                    "tvcn", \
+                    len(self.contents['columns'][i]['tvcn']), \
+                    self.contents['columns'][i]['tvcn'], \
+                    "tvcw",
                     self.contents['columns'][i]['tvcw']))
-        
+
         # available tracks : otrk, ptrk 
         for i, x in enumerate(self.contents['tracks']):
-            f.write(struct.pack("4s", "otrk")) 
-            f.write(struct.pack("4s", self.contents['tracks'][i]['otrk']))
-            f.write(struct.pack("4s", "ptrk"))
-            f.write(struct.pack(">L%ds" % len(self.contents['tracks'][i]['ptrk']),\
-               len(self.contents['tracks'][i]['ptrk']), \
-               self.contents['tracks'][i]['ptrk']))
+            f.write(struct.pack(">4s4s4sL%ds" % \
+                    len(self.contents['tracks'][i]['ptrk']), \
+                    "otrk", \
+                    self.contents['tracks'][i]['otrk'], \
+                    "ptrk", \
+                    len(self.contents['tracks'][i]['ptrk']), \
+                    self.contents['tracks'][i]['ptrk'])) 
          
         f.close()       
 
@@ -247,5 +252,5 @@ class Crate(SSL):
         return [ c['tvcn'] for c in self.contents['columns'] ] 
     
 class Library(SSL):
-    """ TODO: Placeholder for the SSL library file format.  """
+    """ TODO: Placeholder for the SSL library file format. """
     pass
