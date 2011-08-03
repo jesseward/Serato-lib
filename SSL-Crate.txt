@@ -23,7 +23,7 @@ Column Details - repeated for all columns
  10        <DATA>   4 bytes, 32bit int
  11        tvcn     byte string/tag denoting column name
  12        <DATA>   32bit int + Variable length string
- 13        tvcw     4 byte string/tag ???
+ 13        tvcw     4 byte string/tag, column width?
  14        <DATA>   6 bytes of ???
 
 Song/Track details - repeated for each track
