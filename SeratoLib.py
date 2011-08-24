@@ -1,5 +1,8 @@
 import mmap
 import struct
+import logging
+
+log = logging.getLogger(__name__)
 
 class SSLCrateError(Exception):
     pass
@@ -16,6 +19,7 @@ class SSL(object):
 
         try:
             f = open(self.cratefile, "r+b")
+            log.info("Reading Serato file %s" % self.cratefile)
         except:
             raise SSLCrateError("Unable to open %s" % self.cratefile)
 
@@ -80,23 +84,28 @@ class Crate(SSL):
             if self._read_tag('vrsn'):
                 vrsn = self._read_bytes(60)
                 crate['vrsn'] = vrsn
+                log.debug("Reading create, found VRSN tag '%s'" % vrsn)
  
             # handle column sorting tags
             elif self._read_tag('osrt'):
+                log.debug("Reading crate, found OSRT tag")
                 osrt = self._read_bytes(4)
                 crate['sort'] = {'osrt': osrt}
 
                 # read sorted column name header
                 if self._read_tag('tvcn'):
                     tvcn = self._readvarlenstr()
+                    log.debug("Reading crate, found TVCN tag '%s'" % tvcn)
                     crate['sort'].update({'tvcn': tvcn})
 
                 if self._read_tag('brev'):
+                    log.debug("Reading crate, found BREV tag")
                     brev = self._read_bytes(5)
                     crate['sort'].update({'brev': brev})
 
             # read in the remaining available column data.
             elif self._read_tag('ovct'):
+                log.debug("Reading crate, found OVCT tag")
                 ovct = self._read_bytes(4)
                 try:
                     crate['columns'].append({'ovct': ovct}) 
@@ -105,14 +114,17 @@ class Crate(SSL):
 
                 if self._read_tag('tvcn'):
                     tvcn = self._readvarlenstr()
+                    log.debug("Reading crate, found TVCN tag '%s'" % tvcn)
                     crate['columns'][-1].update({'tvcn': tvcn})
 
                 if self._read_tag('tvcw'):
+                    log.debug("Reading crate, found TVCW tag")
                     tvcw = self._read_bytes(6)
                     crate['columns'][-1].update({'tvcw': tvcw})
 
             # parse track data.
             elif self._read_tag('otrk'):
+                log.debug("Reading crate, found OTRK tag")
                 otrk = self._read_bytes(4)
                 tracksize = struct.unpack(">L", otrk)
                 
@@ -124,6 +136,7 @@ class Crate(SSL):
                 if self._read_tag('ptrk'):
                     self.ssldb.read(4)
                     ptrk = self._read_bytes(tracksize[0] - 8)
+                    log.debug("Reading crate, found PTRK tag '%s'" % ptrk)
                     crate['tracks'][-1].update({'ptrk': ptrk})
             else:
                 raise SSLCrateError("Unexpected binary file format, unable to parse")
@@ -168,7 +181,7 @@ class Crate(SSL):
         if self._track_exist(file_name):
             raise SSLCrateError("File already exists in crate.")
 
-        otrk = struct.pack(">L", len(file_name))
+        otrk = struct.pack(">L", len(file_name) + 8)
 
         self.contents['tracks'].append({'otrk': otrk})
         self.contents['tracks'][-1].update({'ptrk': file_name})
@@ -196,6 +209,7 @@ class Crate(SSL):
  
         try:
             f = open('temp.db', 'wb')
+            log.info("Writing Serato crate file to disk")
         except IOError:
             raise SSLCrateError("Unable to write crate file.")
 
