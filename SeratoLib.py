@@ -1,5 +1,6 @@
 import mmap
 import struct
+import shutil
 import logging
 
 log = logging.getLogger(__name__)
@@ -9,8 +10,7 @@ class SSLCrateError(Exception):
 
 class SSL(object):
 
-    def __init__(self, cratefile):
-        self.cratefile = cratefile
+    def __init__(self):
         self.ssldb = self.read_db_file()
 
 
@@ -18,10 +18,10 @@ class SSL(object):
         """ loads the given file into an mmap object """
 
         try:
-            f = open(self.cratefile, "r+b")
-            log.info("Reading Serato file %s" % self.cratefile)
+            f = open(self.crate_file, "r+b")
+            log.info("Reading Serato file %s" % self.crate_file)
         except:
-            raise SSLCrateError("Unable to open %s" % self.cratefile)
+            raise SSLCrateError("Unable to open %s" % self.crate_file)
 
         sslmap = mmap.mmap(f.fileno(), 0)
         f.close()
@@ -51,12 +51,18 @@ class SSL(object):
         return self.ssldb.read(varlen[0])
 
     @staticmethod
+    def backup_db(file_name):
+        log.info("Backing up Serato library file '%s' to '%s.bak'" \
+                        % (file_name, file_name))
+        try:
+            shutil.copy(file_name, "%s.bak" % file_name)
+        except IOError, e:
+            log.warn("Skipping back-up due to '%s'" % e)
+
+    @staticmethod
     def null_pad(instr):
         return "".join([ struct.pack("xc", i) for i in instr ])
 
-    @staticmethod
-    def backup_db(dbfile):
-        pass
 
 class Crate(SSL):
 
@@ -66,8 +72,9 @@ class Crate(SSL):
         'tvcw' : '\x00\x00\x00\x02\x000', # column width
         }
 
-    def __init__(self, cratefile):
-        SSL.__init__(self, cratefile)
+    def __init__(self, crate_file):
+        self.crate_file = crate_file
+        SSL.__init__(self)
         self.contents = self._parse_crate()
  
     def _parse_crate(self):
@@ -204,12 +211,17 @@ class Crate(SSL):
         else:
             del(self.contents['tracks'][exist[0]])
 
-    def save_crate(self):
+    def save_crate(self, file_name=None):
         """ Dumps crate file to disk. """
+
+        if file_name is None:
+            file_name = self.crate_file
+
+        SSL.backup_db(file_name)
  
         try:
-            f = open('temp.db', 'wb')
-            log.info("Writing Serato crate file to disk")
+            f = open(file_name, 'wb')
+            log.info("Writing Serato crate file '%s' to disk" % file_name)
         except IOError:
             raise SSLCrateError("Unable to write crate file.")
 
