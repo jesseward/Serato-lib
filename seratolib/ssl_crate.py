@@ -1,69 +1,3 @@
-import mmap
-import struct
-import shutil
-import logging
-
-log = logging.getLogger(__name__)
-
-class SSLCrateError(Exception):
-    pass
-
-class SSL(object):
-
-    def __init__(self):
-        self.ssldb = self.read_db_file()
-
-
-    def read_db_file(self):
-        """ loads the given file into an mmap object """
-
-        try:
-            f = open(self.crate_file, "r+b")
-            log.info("Reading Serato file %s" % self.crate_file)
-        except:
-            raise SSLCrateError("Unable to open %s" % self.crate_file)
-
-        sslmap = mmap.mmap(f.fileno(), 0)
-        f.close()
-
-        return sslmap
-
-    def _read_tag(self, tag): 
-
-        currpos = self.ssldb.tell()
-        foundtag =  self.ssldb.read(len(tag))
-
-        if foundtag == tag:
-            return True
-        else:
-            self.ssldb.seek(currpos)
-
-    def _read_bytes(self, numbytes):
-        """ Reads a variable length of bytes from the mself.ssldb """
-
-        return self.ssldb.read(numbytes)
-
-    def _readvarlenstr(self, pad=4):
-        """ Reads and parses a variable length string field """
-
-        varlen = self.ssldb.read(pad)
-        varlen = struct.unpack(">L", varlen)
-        return self.ssldb.read(varlen[0])
-
-    @staticmethod
-    def backup_db(file_name):
-        log.info("Backing up Serato library file '%s' to '%s.bak'" \
-                        % (file_name, file_name))
-        try:
-            shutil.copy(file_name, "%s.bak" % file_name)
-        except IOError, e:
-            log.warn("Skipping back-up due to '%s'" % e)
-
-    @staticmethod
-    def null_pad(instr):
-        return "".join([ struct.pack("xc", i) for i in instr ])
-
-
 class Crate(SSL):
 
     TAG_DEFAULTS = {
@@ -177,7 +111,7 @@ class Crate(SSL):
     def _column_exist(self, column_name):
         """ Returns column position if present in dict """
 
-        return [ i for i, x in enumerate(self.contents['columns']) \
+        return [ i for i, x in enumerate(self.contents['columns'])
                     if x['tvcn'] == column_name ]
 
     def add_track(self, file_name):
@@ -196,7 +130,7 @@ class Crate(SSL):
     def _track_exist(self, file_name):
         """ Returns position if track is already present in the given crate """ 
 
-        return [ i for i, x in enumerate(self.contents['tracks']) \
+        return [ i for i, x in enumerate(self.contents['tracks'])
                     if x['ptrk'] == file_name ]
 
     def delete_track(self, file_name):
@@ -226,41 +160,41 @@ class Crate(SSL):
             raise SSLCrateError("Unable to write crate file.")
 
         # vrsn tag
-        f.write(struct.pack("4s%ds" % len(self.version), \
-                            "vrsn", \
+        f.write(struct.pack("4s%ds" % len(self.version),
+                            "vrsn",
                             self.version))
        
         # sorted colum : osrt, tvcn, brev 
-        f.write(struct.pack(">4s4s4sL%ds4s5s" % len(self.contents['sort']['tvcn']),  \
-                            "osrt", \
-                            self.contents['sort']['osrt'], \
-                            "tvcn", \
-                            len(self.contents['sort']['tvcn']), \
-                            self.contents['sort']['tvcn'], \
-                            "brev", \
+        f.write(struct.pack(">4s4s4sL%ds4s5s" % len(self.contents['sort']['tvcn']),
+                            "osrt",
+                            self.contents['sort']['osrt'],
+                            "tvcn",
+                            len(self.contents['sort']['tvcn']),
+                            self.contents['sort']['tvcn'],
+                            "brev",
                             self.contents['sort']['brev'])) 
 
         # available columns : ovct, tvcn, tvcw
         for i, x in enumerate(self.contents['columns']):
-            f.write(struct.pack(">4s4s4sL%ds4s%ds" % \
+            f.write(struct.pack(">4s4s4sL%ds4s%ds" %
                     (len(self.contents['columns'][i]['tvcn']),
-                     len(self.contents['columns'][i]['tvcw'])), \
-                    "ovct", \
-                    self.contents['columns'][i]['ovct'], \
-                    "tvcn", \
-                    len(self.contents['columns'][i]['tvcn']), \
-                    self.contents['columns'][i]['tvcn'], \
+                     len(self.contents['columns'][i]['tvcw'])),
+                    "ovct",
+                    self.contents['columns'][i]['ovct'],
+                    "tvcn",
+                    len(self.contents['columns'][i]['tvcn']),
+                    self.contents['columns'][i]['tvcn'],
                     "tvcw",
                     self.contents['columns'][i]['tvcw']))
 
         # available tracks : otrk, ptrk 
         for i, x in enumerate(self.contents['tracks']):
-            f.write(struct.pack(">4s4s4sL%ds" % \
-                    len(self.contents['tracks'][i]['ptrk']), \
-                    "otrk", \
-                    self.contents['tracks'][i]['otrk'], \
-                    "ptrk", \
-                    len(self.contents['tracks'][i]['ptrk']), \
+            f.write(struct.pack(">4s4s4sL%ds" %
+                    len(self.contents['tracks'][i]['ptrk']),
+                    "otrk",
+                    self.contents['tracks'][i]['otrk'],
+                    "ptrk",
+                    len(self.contents['tracks'][i]['ptrk']),
                     self.contents['tracks'][i]['ptrk'])) 
          
         f.close()       
@@ -276,7 +210,4 @@ class Crate(SSL):
     @property
     def columns(self):
         return [ c['tvcn'] for c in self.contents['columns'] ] 
-    
-class Library(SSL):
-    """ TODO: Placeholder for the SSL library file format. """
-    pass
+
