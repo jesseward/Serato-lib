@@ -24,8 +24,3 @@ library.
 TODO
 ====
 Nothing. This is not active.
-
-- generate read / write classes for library files
-- s/mmap/construct/ libraries for cleaner parsing  of the binary structures
-- dechipher "unknown" SSL tags (brev, ovct, tvcw). 
-- run a test, and attempt to open with SSL ;-)
