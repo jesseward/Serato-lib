@@ -126,6 +126,9 @@ class Crate(SSL):
                 if self._read_tag('tvcw'):
                     log.debug("Reading crate, found TVCW tag")
                     tvcw = self._read_bytes(6)
+                    # If it's not empty, it's actually 10 bytes
+                    if tvcw != Crate.TAG_DEFAULTS['tvcw']:
+                        tvcw += self._read_bytes(4)
                     crate['columns'][-1].update({'tvcw': tvcw})
 
             # parse track data.
