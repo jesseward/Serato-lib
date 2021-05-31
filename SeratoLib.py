@@ -28,7 +28,7 @@ class SSL(object):
 
         return sslmap
 
-    def _read_tag(self, tag): 
+    def _read_tag(self, tag):
 
         currpos = self.ssldb.tell()
         foundtag =  self.ssldb.read(len(tag))
@@ -63,7 +63,6 @@ class SSL(object):
     def null_pad(instr):
         return "".join([ struct.pack("xc", i) for i in instr ])
 
-
 class Crate(SSL):
 
     TAG_DEFAULTS = {
@@ -76,15 +75,15 @@ class Crate(SSL):
         self.crate_file = crate_file
         SSL.__init__(self)
         self.contents = self._parse_crate()
- 
+
     def _parse_crate(self):
         """ steps through an SSL crate mmap object byte-by-byte, building a
             data structure along the way. Not an exact representation of the
             binary file, as the length (UInt32) has been stripped from the
             varchar fields. """
-       
+
         crate = {}
- 
+
         while (self.ssldb.tell() < self.ssldb.size()):
 
             # read VRSN header data
@@ -92,7 +91,7 @@ class Crate(SSL):
                 vrsn = self._read_bytes(60)
                 crate['vrsn'] = vrsn
                 log.debug("Reading create, found VRSN tag '%s'" % vrsn)
- 
+
             # handle column sorting tags
             elif self._read_tag('osrt'):
                 log.debug("Reading crate, found OSRT tag")
@@ -115,7 +114,7 @@ class Crate(SSL):
                 log.debug("Reading crate, found OVCT tag")
                 ovct = self._read_bytes(4)
                 try:
-                    crate['columns'].append({'ovct': ovct}) 
+                    crate['columns'].append({'ovct': ovct})
                 except KeyError:
                     crate['columns'] = [{'ovct': ovct}]
 
@@ -134,7 +133,7 @@ class Crate(SSL):
                 log.debug("Reading crate, found OTRK tag")
                 otrk = self._read_bytes(4)
                 tracksize = struct.unpack(">L", otrk)
-                
+
                 try:
                     crate['tracks'].append({'otrk': otrk})
                 except KeyError:
@@ -149,7 +148,7 @@ class Crate(SSL):
                 raise SSLCrateError("Unexpected binary file format, unable to parse")
 
         return crate
- 
+
     def add_column(self, column_name):
         """ Adds a column header to the Serato Crate dict """
 
@@ -162,18 +161,18 @@ class Crate(SSL):
             self.contents['columns'].append({'ovct': Crate.TAG_DEFAULTS['ovct']})
             self.contents['columns'][-1].update({'tvcn': column_name})
             self.contents['columns'][-1].update({'tvcw': Crate.TAG_DEFAULTS['tvcw']})
-            
+
     def delete_column(self, column_name):
-        """ Removes a column name from the crate dict """        
-        
+        """ Removes a column name from the crate dict """
+
         column_name = SSL.null_pad(column_name)
         exist = self._column_exist(column_name)
-    
+
         if not exist:
             raise SSLCrateError("Column name does not exist.")
         else:
             del(self.contents['columns'][exist[0]])
-        
+
     def _column_exist(self, column_name):
         """ Returns column position if present in dict """
 
@@ -181,7 +180,7 @@ class Crate(SSL):
                     if x['tvcn'] == column_name ]
 
     def add_track(self, file_name):
-        """ Appends the binary packed track data to dict """ 
+        """ Appends the binary packed track data to dict """
 
         file_name = SSL.null_pad(file_name)
 
@@ -192,9 +191,9 @@ class Crate(SSL):
 
         self.contents['tracks'].append({'otrk': otrk})
         self.contents['tracks'][-1].update({'ptrk': file_name})
-       
+
     def _track_exist(self, file_name):
-        """ Returns position if track is already present in the given crate """ 
+        """ Returns position if track is already present in the given crate """
 
         return [ i for i, x in enumerate(self.contents['tracks']) \
                     if x['ptrk'] == file_name ]
@@ -218,7 +217,7 @@ class Crate(SSL):
             file_name = self.crate_file
 
         SSL.backup_db(file_name)
- 
+
         try:
             f = open(file_name, 'wb')
             log.info("Writing Serato crate file '%s' to disk" % file_name)
@@ -229,8 +228,8 @@ class Crate(SSL):
         f.write(struct.pack("4s%ds" % len(self.version), \
                             "vrsn", \
                             self.version))
-       
-        # sorted colum : osrt, tvcn, brev 
+
+        # sorted colum : osrt, tvcn, brev
         f.write(struct.pack(">4s4s4sL%ds4s5s" % len(self.contents['sort']['tvcn']),  \
                             "osrt", \
                             self.contents['sort']['osrt'], \
@@ -238,7 +237,7 @@ class Crate(SSL):
                             len(self.contents['sort']['tvcn']), \
                             self.contents['sort']['tvcn'], \
                             "brev", \
-                            self.contents['sort']['brev'])) 
+                            self.contents['sort']['brev']))
 
         # available columns : ovct, tvcn, tvcw
         for i, x in enumerate(self.contents['columns']):
@@ -253,7 +252,7 @@ class Crate(SSL):
                     "tvcw",
                     self.contents['columns'][i]['tvcw']))
 
-        # available tracks : otrk, ptrk 
+        # available tracks : otrk, ptrk
         for i, x in enumerate(self.contents['tracks']):
             f.write(struct.pack(">4s4s4sL%ds" % \
                     len(self.contents['tracks'][i]['ptrk']), \
@@ -261,9 +260,9 @@ class Crate(SSL):
                     self.contents['tracks'][i]['otrk'], \
                     "ptrk", \
                     len(self.contents['tracks'][i]['ptrk']), \
-                    self.contents['tracks'][i]['ptrk'])) 
-         
-        f.close()       
+                    self.contents['tracks'][i]['ptrk']))
+
+        f.close()
 
     @property
     def tracks(self):
@@ -271,12 +270,12 @@ class Crate(SSL):
 
     @property
     def version(self):
-        return self.contents['vrsn'] 
+        return self.contents['vrsn']
 
     @property
     def columns(self):
-        return [ c['tvcn'] for c in self.contents['columns'] ] 
-    
+        return [ c['tvcn'] for c in self.contents['columns'] ]
+
 class Library(SSL):
     """ TODO: Placeholder for the SSL library file format. """
     pass
